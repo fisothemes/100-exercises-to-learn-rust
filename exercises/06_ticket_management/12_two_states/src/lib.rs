@@ -11,6 +11,7 @@ use ticket_fields::{TicketDescription, TicketTitle};
 #[derive(Clone)]
 pub struct TicketStore {
     tickets: Vec<Ticket>,
+    tickets_dispatched: u64,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -41,11 +42,28 @@ impl TicketStore {
     pub fn new() -> Self {
         Self {
             tickets: Vec::new(),
+            tickets_dispatched: 0,
         }
     }
 
-    pub fn add_ticket(&mut self, ticket: Ticket) {
+    pub fn add_ticket(&mut self, ticket: TicketDraft)-> TicketId {
+        self.tickets_dispatched += 1;
+        let ticket_id = TicketId(self.tickets_dispatched);
+        let ticket = Ticket {
+            id:ticket_id,
+            title: ticket.title,
+            description: ticket.description,
+            status: Status::ToDo
+        };
+
         self.tickets.push(ticket);
+
+        ticket_id
+
+    }
+
+    pub fn get(&self, id: TicketId) -> Option<&Ticket>{
+        self.tickets.iter().find(| &item | item.id == id)
     }
 }
 
@@ -73,7 +91,7 @@ mod tests {
             description: ticket_description(),
         };
         let id2 = store.add_ticket(draft2);
-        let ticket2 = store.get(id2).unwrap();
+        let _ticket2 = store.get(id2).unwrap();
 
         assert_ne!(id1, id2);
     }
