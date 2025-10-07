@@ -8,3 +8,11 @@
 //
 // Use Rust's package registry, crates.io, to find the dependencies you need
 // (if any) to build this system.
+
+mod data;
+mod store;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+}
