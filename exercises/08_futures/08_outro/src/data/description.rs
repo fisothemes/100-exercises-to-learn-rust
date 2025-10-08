@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use thiserror;
 
-const MAX_DESCRIPTION_LEN: usize = 500;
+pub const MAX_DESCRIPTION_LEN: usize = 500;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TicketDescription(String);

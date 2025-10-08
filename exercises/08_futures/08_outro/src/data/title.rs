@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use thiserror;
 
-const MAX_TITLE_LEN: usize = 50;
+pub const MAX_TITLE_LEN: usize = 50;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TicketTitle(String);
