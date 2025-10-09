@@ -1,9 +1,10 @@
 use std::fmt::{Display, Formatter};
 use thiserror;
+use serde::{Serialize, Deserialize};
 
 pub const MAX_TITLE_LEN: usize = 50;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TicketTitle(String);
 
 impl TryFrom<&str> for TicketTitle {
@@ -85,5 +86,18 @@ mod tests {
             format!("Ticket title is too long! It must be {MAX_TITLE_LEN} bytes!")
         )
     }
-    
+
+    #[test]
+    fn check_json_serde_for_ticket_title() {
+        #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+        struct SimpleTicket{ title: TicketTitle }
+
+        let t = SimpleTicket{ title: TicketTitle::try_from("Cats").unwrap() };
+
+        let ser = serde_json::to_string(&t).unwrap();
+        assert_eq!(r#"{"title":"Cats"}"#, ser, "Serialization failed for {t:?}");
+
+        let de: SimpleTicket = serde_json::from_str(&ser).unwrap();
+        assert_eq!(de, t, "Deserialization failed for {t:?}");
+    }
 }

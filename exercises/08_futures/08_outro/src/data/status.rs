@@ -1,10 +1,13 @@
 use std::fmt::{Display, Formatter, Result};
 use thiserror;
+use serde::{Serialize, Deserialize};
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum Status {
     #[default]
+    #[serde(rename = "To-do")]
     ToDo,
+    #[serde(rename = "In progress")]
     InProgress,
     Done,
 }
@@ -57,5 +60,26 @@ mod tests {
             Status::try_from("Invalid").unwrap_err().to_string(),
             "Failed to parse \"Invalid\" into Status type.".to_string()
         );
+    }
+
+    #[test]
+    fn check_json_serde_for_status() {
+        #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+        struct SimpleTicket{ status: Status }
+
+        let tickets = vec![
+            SimpleTicket{ status: Status::ToDo },
+            SimpleTicket{ status: Status::InProgress },
+            SimpleTicket{ status: Status::Done },
+        ];
+
+        for t in tickets {
+            let ser = serde_json::to_string(&t).unwrap();
+            let expected = format!(r#"{{"status":"{}"}}"#, t.status);
+            assert_eq!(expected, ser, "Serialization failed for {t:?}");
+
+            let de: SimpleTicket = serde_json::from_str(&ser).unwrap();
+            assert_eq!(de, t, "Deserialization failed for {t:?}");
+        }
     }
 }

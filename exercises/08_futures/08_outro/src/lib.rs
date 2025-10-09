@@ -4,7 +4,7 @@
 // It should expose endpoints to:
 //  - Create a ticket
 //  - Retrieve ticket details
-                                          //  - Patch a ticket
+//  - Patch a ticket
 //
 // Use Rust's package registry, crates.io, to find the dependencies you need
 // (if any) to build this system.

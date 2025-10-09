@@ -1,9 +1,10 @@
 use std::fmt::{Display, Formatter};
 use thiserror;
+use serde::{Serialize, Deserialize};
 
 pub const MAX_DESCRIPTION_LEN: usize = 500;
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TicketDescription(String);
 
 
@@ -84,5 +85,24 @@ mod tests {
             TicketDescription::try_from(value).unwrap_err().to_string(),
             format!("Ticket description is too long! It must be {MAX_DESCRIPTION_LEN} bytes!")
         )
+    }
+
+    #[test]
+    fn check_json_serde_for_ticket_description() {
+        #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+        struct SimpleTicket{
+            desc: TicketDescription,
+        }
+        let t = SimpleTicket{
+            desc: TicketDescription::try_from("A sung-through musical...").unwrap()
+        };
+
+        let ser = serde_json::to_string(&t).unwrap();
+        assert_eq!(
+            r#"{"desc":"A sung-through musical..."}"#, ser, "Serialization failed for {t:?}"
+        );
+
+        let de: SimpleTicket = serde_json::from_str(&ser).unwrap();
+        assert_eq!(de, t, "Deserialization failed for {t:?}");
     }
 }

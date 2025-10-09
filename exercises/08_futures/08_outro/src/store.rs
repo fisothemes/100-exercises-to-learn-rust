@@ -2,11 +2,18 @@ use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use tokio::sync::{RwLock};
+use serde::{Serialize, Deserialize};
 
 use crate::data::{Status, Ticket, TicketDraft};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TicketId(u64);
+
+impl From<u64> for TicketId {
+    fn from(value: u64) -> Self {
+        TicketId(value)
+    }
+}
 
 impl Display for TicketId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -56,6 +63,8 @@ mod tests {
     use super::*;
     use crate::data::{Status, TicketDescription, TicketDraft, TicketTitle};
     use tokio::task;
+    use serde::{Serialize, Deserialize};
+    use serde_json;
 
     fn create_draft(title: &str, description: &str) -> TicketDraft {
         TicketDraft {
@@ -141,6 +150,20 @@ mod tests {
         assert_eq!(id2, id);
         assert_eq!(status1, Status::ToDo);
         assert_eq!(status2, Status::ToDo);
+    }
+
+    #[test]
+    fn check_json_serde_for_ticket_id() {
+        #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+        struct SimpleTicket{ id: TicketId }
+
+        let t = SimpleTicket{ id: TicketId(12) };
+
+        let ser = serde_json::to_string(&t).unwrap();
+        assert_eq!(r#"{"id":12}"#, ser, "Serialization failed for {t:?}");
+
+        let de: SimpleTicket = serde_json::from_str(&ser).unwrap();
+        assert_eq!(de, t, "Deserialization failed for {t:?}");
     }
 }
 

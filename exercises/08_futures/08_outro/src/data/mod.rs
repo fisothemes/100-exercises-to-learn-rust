@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use crate::store::TicketId;
 pub mod title;
 pub mod description;
@@ -8,7 +9,7 @@ pub use title::TicketTitle;
 pub use description::TicketDescription;
 pub use status::Status;
 
-#[derive(Debug, Clone, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Ticket {
     pub id: TicketId,
     pub title: TicketTitle,
@@ -17,7 +18,51 @@ pub struct Ticket {
 }
 
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TicketDraft {
     pub title: TicketTitle,
     pub description: TicketDescription
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn check_json_serde_for_ticket_draft() {
+        let t = TicketDraft {
+            title: TicketTitle::try_from("Hello There!").unwrap(),
+            description: TicketDescription::try_from("A Star Wars Story.").unwrap()
+        };
+
+        let ser = serde_json::to_string(&t).unwrap();
+        assert_eq!(
+            r#"{"title":"Hello There!","description":"A Star Wars Story."}"#,
+            ser,
+            "Serialization failed for {t:?}"
+        );
+
+        let de: TicketDraft = serde_json::from_str(&ser).unwrap();
+        assert_eq!(de, t, "Deserialization failed for {t:?}");
+    }
+
+    #[test]
+    fn check_json_serde_for_ticket() {
+        let t = Ticket {
+            id: TicketId::from(33),
+            title: TicketTitle::try_from("Jimmy").unwrap(),
+            description:TicketDescription::try_from("A Neutron Story.").unwrap(),
+            status: Status::InProgress
+        };
+
+        let ser = serde_json::to_string(&t).unwrap();
+        assert_eq!(
+            r#"{"id":33,"title":"Jimmy","description":"A Neutron Story.","status":"In progress"}"#,
+            ser,
+            "Serialization failed for {t:?}"
+        );
+
+        let de: Ticket = serde_json::from_str(&ser).unwrap();
+        assert_eq!(de, t, "Deserialization failed for {t:?}");
+    }
 }
