@@ -24,6 +24,14 @@ pub struct TicketDraft {
     pub description: TicketDescription
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct TicketPatch {
+    pub id: TicketId,
+    pub title: Option<TicketTitle>,
+    pub description: Option<TicketDescription>,
+    pub status: Option<Status>
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -51,7 +59,7 @@ mod tests {
         let t = Ticket {
             id: TicketId::from(33),
             title: TicketTitle::try_from("Jimmy").unwrap(),
-            description:TicketDescription::try_from("A Neutron Story.").unwrap(),
+            description: TicketDescription::try_from("A Neutron Story.").unwrap(),
             status: Status::InProgress
         };
 
@@ -63,6 +71,26 @@ mod tests {
         );
 
         let de: Ticket = serde_json::from_str(&ser).unwrap();
+        assert_eq!(de, t, "Deserialization failed for {t:?}");
+    }
+
+    #[test]
+    fn check_json_serde_for_ticket_patch(){
+        let t = TicketPatch {
+            id: TicketId::from(33),
+            title: None,
+            description: None,
+            status: Some(Status::Done)
+        };
+
+        let ser = serde_json::to_string(&t).unwrap();
+        assert_eq!(
+            r#"{"id":33,"title":null,"description":null,"status":"Done"}"#,
+            ser,
+            "Serialization failed for {t:?}"
+        );
+
+        let de: TicketPatch = serde_json::from_str(&ser).unwrap();
         assert_eq!(de, t, "Deserialization failed for {t:?}");
     }
 }
