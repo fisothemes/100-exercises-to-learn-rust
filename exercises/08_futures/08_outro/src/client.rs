@@ -46,7 +46,7 @@ impl Client {
 
     pub async fn retrieve(&self, TicketId(id): TicketId) -> Result<Ticket> {
 
-        let url = Url::parse(&format!("{}/{}", self.base_url.as_ref(), id))?;
+        let url = self.base_url.join(&id.to_string())?;
 
         Ok(
             self.client
@@ -59,7 +59,7 @@ impl Client {
     pub async fn patch(&self, patch: TicketPatch) -> Result<Ticket> {
         use serde_json::{Value, Map};
 
-        let url = Url::parse(&format!("{}/{}", self.base_url.as_ref(), patch.id))?;
+        let url = self.base_url.join(&patch.id.to_string())?;
 
         let mut map = Map::new();
 
