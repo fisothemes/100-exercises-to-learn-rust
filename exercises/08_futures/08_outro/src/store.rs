@@ -4,16 +4,9 @@ use std::sync::Arc;
 use tokio::sync::{RwLock};
 use serde::{Serialize, Deserialize};
 
-use crate::data::{Status, Ticket, TicketDraft};
+use crate::data::{Status, TicketId, Ticket, TicketDraft};
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub struct TicketId(u64);
 
-impl From<u64> for TicketId {
-    fn from(value: u64) -> Self {
-        TicketId(value)
-    }
-}
 
 impl Display for TicketId {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {

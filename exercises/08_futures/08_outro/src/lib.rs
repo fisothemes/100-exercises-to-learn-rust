@@ -11,6 +11,9 @@
 
 pub mod data;
 pub mod store;
+pub mod client;
+pub mod error;
+mod server;
 
 #[cfg(test)]
 mod tests {

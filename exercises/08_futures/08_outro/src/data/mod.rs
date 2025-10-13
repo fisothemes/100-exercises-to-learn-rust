@@ -1,5 +1,4 @@
 use serde::{Deserialize, Serialize};
-use crate::store::TicketId;
 pub mod title;
 pub mod description;
 pub mod status;
@@ -8,6 +7,9 @@ pub mod status;
 pub use title::TicketTitle;
 pub use description::TicketDescription;
 pub use status::Status;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct TicketId(pub u64);
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Ticket {
@@ -57,7 +59,7 @@ mod tests {
     #[test]
     fn check_json_serde_for_ticket() {
         let t = Ticket {
-            id: TicketId::from(33),
+            id: TicketId(33),
             title: TicketTitle::try_from("Jimmy").unwrap(),
             description: TicketDescription::try_from("A Neutron Story.").unwrap(),
             status: Status::InProgress
@@ -77,7 +79,7 @@ mod tests {
     #[test]
     fn check_json_serde_for_ticket_patch(){
         let t = TicketPatch {
-            id: TicketId::from(33),
+            id: TicketId(33),
             title: None,
             description: None,
             status: Some(Status::Done)
