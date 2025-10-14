@@ -1,3 +1,4 @@
+use std::fmt::format;
 use url::Url;
 use crate::{
     error::Result,
@@ -46,7 +47,7 @@ impl Client {
 
     pub async fn retrieve(&self, TicketId(id): TicketId) -> Result<Ticket> {
 
-        let url = self.base_url.join(&id.to_string())?;
+        let url = Url::parse(&format!("{}/{}", self.base_url, id))?;
 
         Ok(
             self.client
@@ -59,7 +60,7 @@ impl Client {
     pub async fn patch(&self, patch: TicketPatch) -> Result<Ticket> {
         use serde_json::{Value, Map};
 
-        let url = self.base_url.join(&patch.id.to_string())?;
+        let url = Url::parse(&format!("{}/{}", self.base_url, patch.id))?;
 
         let mut map = Map::new();
 
