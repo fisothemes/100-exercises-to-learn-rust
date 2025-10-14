@@ -39,6 +39,20 @@ mod tests {
     use super::*;
 
     #[test]
+    fn check_json_serde_for_ticket_id() {
+        #[derive(Debug, Serialize, Deserialize, Eq, PartialEq)]
+        struct SimpleTicket{ id: TicketId }
+
+        let t = SimpleTicket{ id: TicketId(12) };
+
+        let ser = serde_json::to_string(&t).unwrap();
+        assert_eq!(r#"{"id":12}"#, ser, "Serialization failed for {t:?}");
+
+        let de: SimpleTicket = serde_json::from_str(&ser).unwrap();
+        assert_eq!(de, t, "Deserialization failed for {t:?}");
+    }
+
+    #[test]
     fn check_json_serde_for_ticket_draft() {
         let t = TicketDraft {
             title: TicketTitle::try_from("Hello There!").unwrap(),
