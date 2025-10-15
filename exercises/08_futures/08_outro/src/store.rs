@@ -13,7 +13,7 @@ impl Display for TicketId {
     }
 }
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct TicketStore {
     tickets: BTreeMap<TicketId, Arc<RwLock<Ticket>>>,
     counter: u64,

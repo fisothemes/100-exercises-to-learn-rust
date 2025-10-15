@@ -10,6 +10,8 @@ pub enum Error{
     UrlParse(#[from] url::ParseError),
     #[error("JSON parse error: {0}")]
     JsonParse(#[from] serde_json::Error),
+    #[error("IO error: {0}")]
+    Io(#[from] std::io::Error),
     #[error("Ticket title error: {0}")]
     Title(#[from] title::TicketTitleError),
     #[error("Ticket description error: {0}")]
