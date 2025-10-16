@@ -17,8 +17,19 @@ pub mod server;
 
 #[cfg(test)]
 mod tests {
-    #[test]
-    fn it_works(){
-        assert!(false)
+    use super::{
+        server::Server,
+        error::Result,
+    };
+
+    #[tokio::test]
+    async fn it_works() -> Result<()> {
+        let server = Server::new().serve("127.0.0.1:20202").await?;
+
+        println!("Listening on http://{}", server.local_addr()?);
+
+        assert!(false);
+
+        Ok(server.await?)
     }
 }

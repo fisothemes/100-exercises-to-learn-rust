@@ -1,4 +1,3 @@
-use std::fmt::format;
 use url::Url;
 use crate::{
     error::Result,

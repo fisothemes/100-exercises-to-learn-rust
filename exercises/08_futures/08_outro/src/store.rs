@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, btree_map::Values};
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use tokio::sync::{RwLock};
@@ -47,6 +47,10 @@ impl TicketStore {
 
     pub fn get_mut(&mut self, id: TicketId) -> Option<&mut Arc<RwLock<Ticket>>> {
         self.tickets.get_mut(&id)
+    }
+
+    pub fn get_all(&self) ->  Values<'_, TicketId, Arc<RwLock<Ticket>>> {
+         self.tickets.values()
     }
 }
 

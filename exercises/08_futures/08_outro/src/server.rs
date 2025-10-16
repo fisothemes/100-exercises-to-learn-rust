@@ -1,17 +1,19 @@
 use tokio::net::{ToSocketAddrs, TcpListener};
-use serde_json::Value;
+use serde_json::{Value, Map};
 use axum::{
     Router,
     Json,
     routing::{get, post, patch},
     serve::Serve,
-    extract::{State},
+    extract::{Path, State},
 };
 use crate::{
     error::Result,
     store::TicketStore,
-    data::{TicketId, Ticket},
+    data::{TicketId, Ticket, TicketDraft},
 };
+use crate::data::TicketTitle;
+
 #[derive(Debug)]
 pub struct Server{
     router: Router
@@ -38,19 +40,48 @@ impl Server {
         Ok(axum::serve(listener, self.router))
     }
 
-    async fn list_all(State(_): State<TicketStore>) -> Json<Vec<Ticket>> {
-        todo!()
+    async fn list_all(State(store): State<TicketStore>) -> Json<Vec<Ticket>> {
+        let mut tickets = Vec::new();
+
+        for ticket in store.get_all() {
+            tickets.push(ticket.read().await.clone());
+        }
+
+        Json(tickets)
     }
 
-    async fn create(State(_): State<TicketStore>) -> Json<TicketId> {
-        todo!()
+    async fn create(State(mut store): State<TicketStore>, Json(draft): Json<TicketDraft>)
+        -> Json<TicketId>
+    {
+        Json(store.add_ticket(draft))
     }
 
-    async fn retrieve(State(_): State<TicketStore>, Json(_): Json<TicketId>) -> Json<Ticket> {
-        todo!()
+    async fn retrieve(Path(id): Path<TicketId>, State(store): State<TicketStore>)
+        -> Json<Option<Ticket>>
+    {
+        if let Some(ticket) = store.get(id) {
+            Json(Some(ticket.read().await.clone()))
+        } else {
+            Json(None)
+        }
     }
 
-    async fn patch(State(_): State<TicketStore>, Json(_): Json<Value>) -> Json<Ticket> {
-        todo!()
+    async fn patch(Path(id): Path<TicketId>, State(mut store): State<TicketStore>, Json(patch): Json<Value>)
+        -> Json<Option<Ticket>>
+    {
+        if let Some(ticket) = store.get_mut(id){
+            match patch {
+                Value::Object(map) => {
+                    if let Some(title) = map.get("title") {
+                        //ticket.write().await.title = TicketTitle
+                    }
+                    todo!()
+                }
+                _ => Json(None)
+            }
+        } else {
+            Json(None)
+        }
+        
     }
 }
