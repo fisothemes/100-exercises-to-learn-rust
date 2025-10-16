@@ -12,7 +12,7 @@ use crate::{
     store::TicketStore,
     data::{TicketId, Ticket, TicketDraft},
 };
-use crate::data::TicketTitle;
+use crate::data::{Status, TicketDescription, TicketTitle};
 
 #[derive(Debug)]
 pub struct Server{
@@ -73,15 +73,27 @@ impl Server {
             match patch {
                 Value::Object(map) => {
                     if let Some(title) = map.get("title") {
-                        //ticket.write().await.title = TicketTitle
+                        let title = serde_json::to_string(title).unwrap();
+                        ticket.write().await.title = TicketTitle::try_from(title).unwrap();
                     }
-                    todo!()
+
+                    if let Some(desc) = map.get("description") {
+                        let desc = serde_json::to_string(desc).unwrap();
+                        ticket.write().await.description = TicketDescription::try_from(desc).unwrap();
+                    }
+
+                    if let Some(status) = map.get("status") {
+                        let status = serde_json::to_string(status).unwrap();
+                        ticket.write().await.status = Status::try_from(status).unwrap();
+                    }
+                    
+                    Json(Some(ticket.read().await.clone()))
                 }
                 _ => Json(None)
             }
         } else {
             Json(None)
         }
-        
+
     }
 }
