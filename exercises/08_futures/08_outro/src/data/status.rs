@@ -34,6 +34,15 @@ impl TryFrom<&str> for Status {
         }
     }
 }
+
+impl TryFrom<String> for Status {
+    type Error = StatusError;
+
+    fn try_from(value: String) -> std::result::Result<Self, Self::Error> {
+        Self::try_from(value.as_str())
+    }
+}
+
 #[derive(Debug, thiserror::Error, PartialEq, Eq, Clone)]
 pub enum StatusError{
     #[error("Failed to parse \"{0}\" into Status type.")]

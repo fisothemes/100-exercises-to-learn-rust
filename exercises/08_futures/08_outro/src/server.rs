@@ -1,14 +1,16 @@
 use tokio::net::{ToSocketAddrs, TcpListener};
-use serde_json::{Value, Map};
+use serde_json::Value;
 use axum::{
     Router,
     Json,
+    http::StatusCode,
     routing::{get, post, patch},
     serve::Serve,
     extract::{Path, State},
 };
+use axum::response::Html;
 use crate::{
-    error::Result,
+    error::{Result, Error},
     store::TicketStore,
     data::{TicketId, Ticket, TicketDraft},
 };
@@ -25,10 +27,11 @@ impl Server {
         let base_path = "/tickets";
 
         let router = Router::new()
+            .route("/", get(|| async { Html::from("Welcome!") }))
             .route(base_path, get(Self::list_all))
             .route(base_path, post(Self::create))
-            .route(&format!("{base_path}/{}", "{id}"), get(Self::retrieve))
-            .route(&format!("{base_path}/{}", "{id}"), patch(Self::patch))
+            .route(&format!("{base_path}/{{id}}"), get(Self::retrieve))
+            .route(&format!("{base_path}/{{id}}"), patch(Self::patch))
             .with_state(TicketStore::new());
 
         Self { router }
@@ -51,49 +54,51 @@ impl Server {
     }
 
     async fn create(State(mut store): State<TicketStore>, Json(draft): Json<TicketDraft>)
-        -> Json<TicketId>
-    {
-        Json(store.add_ticket(draft))
-    }
+        -> Json<TicketId> { Json(store.add_ticket(draft)) }
 
     async fn retrieve(Path(id): Path<TicketId>, State(store): State<TicketStore>)
-        -> Json<Option<Ticket>>
+        ->  Result<Json<Ticket>>
     {
         if let Some(ticket) = store.get(id) {
-            Json(Some(ticket.read().await.clone()))
+            Ok(Json(ticket.read().await.clone()))
         } else {
-            Json(None)
+            Err(
+                Error::HttpStatusCode(
+                    StatusCode::NOT_FOUND, format!("Cannot find ticket with id: {id}.")
+                )
+            )
         }
     }
 
     async fn patch(Path(id): Path<TicketId>, State(mut store): State<TicketStore>, Json(patch): Json<Value>)
-        -> Json<Option<Ticket>>
+        -> Result<Json<Ticket>>
     {
-        if let Some(ticket) = store.get_mut(id){
-            match patch {
-                Value::Object(map) => {
-                    if let Some(title) = map.get("title") {
-                        let title = serde_json::to_string(title).unwrap();
-                        ticket.write().await.title = TicketTitle::try_from(title).unwrap();
-                    }
+        let Some(ticket) = store.get_mut(id) else {
+            return Err(
+                Error::HttpStatusCode(
+                    StatusCode::NOT_FOUND, format!("Cannot find ticket with id: {id}.")
+                )
+            )
+        };
 
-                    if let Some(desc) = map.get("description") {
-                        let desc = serde_json::to_string(desc).unwrap();
-                        ticket.write().await.description = TicketDescription::try_from(desc).unwrap();
-                    }
+        let Value::Object(map) = serde_json::to_value(patch)? else {
+            return Err(
+                Error::JsonParse(serde::de::Error::custom("Invalid type. Expected JSON object."))
+            )
+        };
 
-                    if let Some(status) = map.get("status") {
-                        let status = serde_json::to_string(status).unwrap();
-                        ticket.write().await.status = Status::try_from(status).unwrap();
-                    }
-                    
-                    Json(Some(ticket.read().await.clone()))
-                }
-                _ => Json(None)
-            }
-        } else {
-            Json(None)
+        if let Some(title) = map.get("title") {
+            ticket.write().await.title = TicketTitle::try_from(title.to_string())?;
         }
 
+        if let Some(desc) = map.get("description") {
+            ticket.write().await.description = TicketDescription::try_from(desc.to_string())?;
+        }
+
+        if let Some(status) = map.get("status") {
+            ticket.write().await.status = Status::try_from(status.to_string())?;
+        }
+
+        Ok(Json(ticket.read().await.clone()))
     }
 }

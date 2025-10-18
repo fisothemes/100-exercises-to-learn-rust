@@ -8,6 +8,8 @@ pub use title::TicketTitle;
 pub use description::TicketDescription;
 pub use status::Status;
 
+use crate::error::Result;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct TicketId(pub u64);
 
@@ -24,6 +26,15 @@ pub struct Ticket {
 pub struct TicketDraft {
     pub title: TicketTitle,
     pub description: TicketDescription
+}
+
+impl TicketDraft {
+    pub fn with<T: AsRef<str>>(title: T , desc: T) -> Result<Self> {
+        Ok(Self {
+            title: TicketTitle::try_from(title.as_ref())?,
+            description: TicketDescription::try_from(desc.as_ref())?
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

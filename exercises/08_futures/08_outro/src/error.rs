@@ -1,3 +1,7 @@
+use axum::{
+    response::{IntoResponse, Response},
+    http::StatusCode
+};
 use crate::data::*;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -10,6 +14,8 @@ pub enum Error{
     UrlParse(#[from] url::ParseError),
     #[error("JSON parse error: {0}")]
     JsonParse(#[from] serde_json::Error),
+    #[error("{0}: {1}")]
+    HttpStatusCode(StatusCode, String),
     #[error("IO error: {0}")]
     Io(#[from] std::io::Error),
     #[error("Ticket title error: {0}")]
@@ -18,4 +24,19 @@ pub enum Error{
     Description(#[from] description::TicketDescriptionError),
     #[error("Ticket status error: {0}")]
     Status(#[from] status::StatusError)
+}
+
+impl IntoResponse for Error {
+    fn into_response(self) -> Response {
+        
+        let response: (StatusCode, String) = match self { 
+            Self::JsonParse(message) => (StatusCode::BAD_REQUEST, message.to_string()),
+            Self::HttpStatusCode(status, message) => (status, message),
+            Self::Title(message) => (StatusCode::BAD_REQUEST, message.to_string()),
+            Self::Description(message) => (StatusCode::BAD_REQUEST, message.to_string()),
+            Self::Status(message) => (StatusCode::BAD_REQUEST, message.to_string()),
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, "".into())
+        };
+        response.into_response()
+    }
 }
