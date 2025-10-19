@@ -34,7 +34,7 @@ impl Display for TicketDescription {
         write!(f, "{}", &self.0)
     }
 }
-fn validate(value: &String) -> Result<(), TicketDescriptionError> {
+fn validate(value: &str) -> Result<(), TicketDescriptionError> {
     if value.trim().is_empty() {
         Err(TicketDescriptionError::NoDescription)
     } else if value.len() > MAX_DESCRIPTION_LEN {

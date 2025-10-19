@@ -34,7 +34,7 @@ impl Display for TicketTitle {
     }
 }
 
-fn validate(value: &String) -> Result<(), TicketTitleError> {
+fn validate(value: &str) -> Result<(), TicketTitleError> {
     if value.trim().is_empty() {
         Err(TicketTitleError::NoTitle)
     } else if value.len() > MAX_TITLE_LEN {
