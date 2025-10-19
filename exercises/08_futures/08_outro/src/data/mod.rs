@@ -10,8 +10,14 @@ pub use status::Status;
 
 use crate::error::Result;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Default,Serialize, Deserialize)]
 pub struct TicketId(pub u64);
+
+impl From<u64> for TicketId {
+    fn from(value: u64) -> Self {
+        TicketId(value)
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Ticket {
@@ -19,6 +25,26 @@ pub struct Ticket {
     pub title: TicketTitle,
     pub description: TicketDescription,
     pub status: Status
+}
+
+impl Ticket {
+    pub fn with<T, U>(
+        id: TicketId,
+        title: T, 
+        description: U,
+        status: Status,
+    ) -> Result<Self> 
+    where 
+        T: Into<String>,
+        U: Into<String>,
+    {
+        Ok(Self{
+            id,
+            title: TicketTitle::try_from(title.into())?,
+            description: TicketDescription::try_from(description.into())?,
+            status,
+        })
+    }
 }
 
 
@@ -37,7 +63,7 @@ impl TicketDraft {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Default, Serialize, Deserialize)]
 pub struct TicketPatch {
     pub id: TicketId,
     pub title: Option<TicketTitle>,

@@ -1,14 +1,16 @@
+use std::sync::Arc;
 use tokio::net::{ToSocketAddrs, TcpListener};
 use serde_json::Value;
 use axum::{
     Router,
     Json,
     http::StatusCode,
-    routing::{get, post, patch},
+    routing::get,
     serve::Serve,
     extract::{Path, State},
 };
 use axum::response::Html;
+use tokio::sync::RwLock;
 use crate::{
     error::{Result, Error},
     store::TicketStore,
@@ -16,50 +18,48 @@ use crate::{
 };
 use crate::data::{Status, TicketDescription, TicketTitle};
 
+type Store = Arc<RwLock<TicketStore>>;
+
 #[derive(Debug)]
-pub struct Server{
-    router: Router
-}
+pub struct Server;
 
 impl Server {
-    pub fn new() -> Self {
 
-        let base_path = "/tickets";
 
+    pub async fn serve(addr: impl ToSocketAddrs)
+        -> Result<Serve<TcpListener, Router, Router>>
+    {
+        let store = Arc::new(RwLock::new(TicketStore::new()));
+        
         let router = Router::new()
-            .route("/", get(|| async { Html::from("Welcome!") }))
-            .route(base_path, get(Self::list_all))
-            .route(base_path, post(Self::create))
-            .route(&format!("{base_path}/{{id}}"), get(Self::retrieve))
-            .route(&format!("{base_path}/{{id}}"), patch(Self::patch))
-            .with_state(TicketStore::new());
-
-        Self { router }
-    }
-
-
-    pub async fn serve(self, addr: impl ToSocketAddrs) -> Result<Serve<TcpListener, Router, Router>> {
+            .route("/", get(|| async { Html::from("Welcome to the ticket store!") }))
+            .route("/tickets", get(Self::list_all).post(Self::create))
+            .route("/tickets/{id}", get(Self::retrieve).patch(Self::patch))
+            .with_state(store);
+        
         let listener = TcpListener::bind(addr).await?;
-        Ok(axum::serve(listener, self.router))
+        Ok(axum::serve(listener, router))
     }
 
-    async fn list_all(State(store): State<TicketStore>) -> Json<Vec<Ticket>> {
+    async fn list_all(State(store): State<Store>) -> Json<Vec<Ticket>> {
         let mut tickets = Vec::new();
 
-        for ticket in store.get_all() {
+        for ticket in store.read().await.get_all() {
             tickets.push(ticket.read().await.clone());
         }
 
         Json(tickets)
     }
 
-    async fn create(State(mut store): State<TicketStore>, Json(draft): Json<TicketDraft>)
-        -> Json<TicketId> { Json(store.add_ticket(draft)) }
+    async fn create(State(store): State<Store>, Json(draft): Json<TicketDraft>)
+        -> Json<TicketId> {
+        Json(store.write().await.add_ticket(draft))
+    }
 
-    async fn retrieve(Path(id): Path<TicketId>, State(store): State<TicketStore>)
+    async fn retrieve(Path(id): Path<TicketId>, State(store): State<Store>)
         ->  Result<Json<Ticket>>
     {
-        if let Some(ticket) = store.get(id) {
+        if let Some(ticket) = store.read().await.get(id) {
             Ok(Json(ticket.read().await.clone()))
         } else {
             Err(
@@ -70,10 +70,10 @@ impl Server {
         }
     }
 
-    async fn patch(Path(id): Path<TicketId>, State(mut store): State<TicketStore>, Json(patch): Json<Value>)
-        -> Result<Json<Ticket>>
+    async fn patch(Path(id): Path<TicketId>, State(store): State<Store>, Json(patch): Json<Value>)
+                   -> Result<Json<Ticket>>
     {
-        let Some(ticket) = store.get_mut(id) else {
+        let Some(ticket) = store.read().await.get(id) else {
             return Err(
                 Error::HttpStatusCode(
                     StatusCode::NOT_FOUND, format!("Cannot find ticket with id: {id}.")
@@ -87,18 +87,20 @@ impl Server {
             )
         };
 
-        if let Some(title) = map.get("title") {
+        if let Some(Value::String(title)) = map.get("title") {
             ticket.write().await.title = TicketTitle::try_from(title.to_string())?;
         }
 
-        if let Some(desc) = map.get("description") {
-            ticket.write().await.description = TicketDescription::try_from(desc.to_string())?;
+        if let Some(Value::String(desc)) = map.get("description") {
+            ticket.write().await.description = TicketDescription::try_from(desc.clone())?;
         }
 
-        if let Some(status) = map.get("status") {
-            ticket.write().await.status = Status::try_from(status.to_string())?;
+        if let Some(Value::String(status)) = map.get("status") {
+            ticket.write().await.status = Status::try_from(status.clone())?;
         }
 
-        Ok(Json(ticket.read().await.clone()))
+        let ticket = ticket.read().await.clone();
+
+        Ok(Json(ticket))
     }
 }

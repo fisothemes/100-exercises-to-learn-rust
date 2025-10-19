@@ -17,19 +17,57 @@ pub mod server;
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        server::Server,
-        error::Result,
-    };
+    use std::net::SocketAddr;
+    use std::time::Duration;
+    use crate::client::Client;
+    use crate::data::{Status, Ticket, TicketDraft, TicketPatch};
+    use crate::server::Server;
+    use super::*;
 
     #[tokio::test]
-    async fn it_works() -> Result<()> {
-        let server = Server::new().serve("127.0.0.1:20202").await?;
+    async fn it_works() -> error::Result<()> {
+        let server = Server::serve("127.0.0.1:20202").await?;
+        let addr = server.local_addr()?;
 
-        println!("Listening on http://{}", server.local_addr()?);
+        tokio::spawn(async { server.await });
 
-        assert!(false);
+        tokio::time::sleep(Duration::from_secs(2)).await;
 
-        Ok(server.await?)
+        launch_client(addr).await
+    }
+
+    // Test helper function.
+    async fn launch_client(addr: SocketAddr) -> error::Result<()> {
+        let c = Client::with_addr(addr.to_string())?;
+
+        let test_ticket = Ticket::with(0.into(), "Cats", "The movie!", Status::ToDo)?;
+
+        let id = c.create(&TicketDraft::with("Cats", "The movie!")?).await?;
+
+        assert_eq!(test_ticket.id, id, "Ticket creation test, ticket id received is: {id}");
+
+        let ticket = c.retrieve(id).await?;
+
+        assert_eq!(test_ticket, ticket, "Ticket retrieval test, ticket received is: {ticket:#?}");
+
+        let ticket_patch = TicketPatch{
+            id,
+            title: None,
+            description: None,
+            status: Some(Status::InProgress),
+        };
+
+        let ticket = c.patch(ticket_patch).await?;
+
+        assert_eq!(Status::InProgress, ticket.status, "Ticket patch test, ticket received is: {ticket:#?}");
+
+        let ticket = c.retrieve(id).await?;
+
+        assert_eq!(
+            Status::InProgress, ticket.status,
+            "2nd Ticket retrieval test to ensure ticket changed, ticket received is: {ticket:#?}"
+        );
+
+        Ok(())
     }
 }

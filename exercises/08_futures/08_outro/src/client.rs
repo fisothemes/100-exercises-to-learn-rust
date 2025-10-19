@@ -12,16 +12,16 @@ pub struct Client {
 
 impl Client {
 
-    pub const DEFAULT_URL: &'static str = "http://127.0.0.1:20202/tickets";
+    pub const DEFAULT_URL: &'static str = "127.0.0.1:20202";
 
     pub fn new() -> Self {
-        Self::with_url(Self::DEFAULT_URL).expect("Default url format is invalid!")
+        Self::with_addr(Self::DEFAULT_URL).expect("Default url format is invalid!")
     }
 
-    pub fn with_url(url: impl AsRef<str>) -> Result<Self> {
+    pub fn with_addr(addr: impl AsRef<str>) -> Result<Self> {
         Ok(Self{
             client: reqwest::Client::new(),
-            base_url: Url::parse(url.as_ref())?,
+            base_url: Url::parse(&format!("http://{}/tickets", addr.as_ref()))?,
         })
     }
 
@@ -63,9 +63,9 @@ impl Client {
 
         let mut map = Map::new();
 
-       if let Some(title) = patch.title {
+        if let Some(title) = patch.title {
            map.insert("title".into(), serde_json::to_value(title)?);
-       }
+        }
 
         if let Some(desc) = patch.description {
             map.insert("description".into(), serde_json::to_value(desc)?);

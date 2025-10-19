@@ -1,7 +1,9 @@
 use axum::{
     response::{IntoResponse, Response},
-    http::StatusCode
+    http::StatusCode,
+    Json,
 };
+use serde_json::json;
 use crate::data::*;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -29,14 +31,17 @@ pub enum Error{
 impl IntoResponse for Error {
     fn into_response(self) -> Response {
         
-        let response: (StatusCode, String) = match self { 
+        let (status, message) = match self {
             Self::JsonParse(message) => (StatusCode::BAD_REQUEST, message.to_string()),
             Self::HttpStatusCode(status, message) => (status, message),
             Self::Title(message) => (StatusCode::BAD_REQUEST, message.to_string()),
             Self::Description(message) => (StatusCode::BAD_REQUEST, message.to_string()),
             Self::Status(message) => (StatusCode::BAD_REQUEST, message.to_string()),
-            _ => (StatusCode::INTERNAL_SERVER_ERROR, "".into())
+            _ => (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error".into())
         };
-        response.into_response()
+
+        let body = Json(json!({ "error" : message }));
+
+        (status, body).into_response()
     }
 }
